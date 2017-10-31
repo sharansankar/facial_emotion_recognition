@@ -86,7 +86,7 @@ def cnn(x):
     #final convolutional layer: maps 5 filters to 5 filters
     with tf.name_scope("conv4"):
         W_conv4 = tf.get_variable("W_conv4", shape=[5,5,5,5],initializer=tf.contrib.layers.xavier_initializer())
-        W_conv4 = weight_variable([5,5,5,5])
+        # W_conv4 = weight_variable([5,5,5,5])
         b_conv4 = bias_variable([5])
         h_conv4 = tf.nn.relu(conv2d(h_pool3,W_conv4) + b_conv4)
 
@@ -133,7 +133,7 @@ def weight_variable(shape):
 
 def bias_variable(shape):
   """bias_variable generates a bias variable of a given shape."""
-  initial = tf.constant(0.0, shape=shape)
+  initial = tf.constant(0.01, shape=shape)
   return tf.Variable(initial)
 
 def train_cnn(train,test,validation,epochs=10000,batch_size=55):
