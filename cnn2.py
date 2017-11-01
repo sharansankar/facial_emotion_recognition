@@ -2,7 +2,6 @@ import argparse
 import tensorflow as tf
 import scipy.misc
 import numpy as np
-
 def read_data(path):
     file = open(path,'r')
     file.readline()
@@ -94,52 +93,45 @@ def cnn(x):
 
     #first convolutional layer: maps image to 5 filters
     with tf.name_scope('conv1'):
-        W_conv1 = tf.get_variable("W_conv1", shape=[5,5,1,40],initializer=tf.contrib.layers.xavier_initializer())
+        W_conv1 = tf.get_variable("W_conv1", shape=[5,5,1,20],initializer=tf.contrib.layers.xavier_initializer())
         # W_conv1 = weight_variable([5,5,1,5])
-        b_conv1 = bias_variable([40])
+        b_conv1 = bias_variable([20])
         h_conv1 = tf.nn.relu(conv2d(x_image,W_conv1) + b_conv1)
+
+    #second convolutional layer: maps 5 filters to another 10 filters
+    with tf.name_scope('conv2'):
+        W_conv2 = tf.get_variable("W_conv2", shape=[5,5,20,40],initializer=tf.contrib.layers.xavier_initializer())
+        # W_conv2 = weight_variable([5,5,5,5])
+        b_conv2 = bias_variable([40])
+        h_conv2 = tf.nn.relu(conv2d(h_conv1,W_conv2) + b_conv2)
+
 
     #pooling layer - downsamples by 2x
     with tf.name_scope("pool1"):
-        h_pool1 = max_pool_2x2(h_conv1)
+        h_pool1 = max_pool_2x2(h_conv2)
 
-    #second convolutional layer: maps 5 filters to another 5 filters
-    with tf.name_scope('conv2'):
-        W_conv2 = tf.get_variable("W_conv2", shape=[5,5,40,50],initializer=tf.contrib.layers.xavier_initializer())
-        # W_conv2 = weight_variable([5,5,5,5])
-        b_conv2 = bias_variable([50])
-        h_conv2 = tf.nn.relu(conv2d(h_pool1,W_conv2) + b_conv2)
-
-    #pooling layer - downsamples by 2x
-    with tf.name_scope("pool2"):
-        h_pool2 = max_pool_2x2(h_conv2)
-
-    #third convolutional layer: maps 5 filters to another 5 filters
+    #third convolutional layer: maps 10 filters to another 10 filters
     with tf.name_scope("conv3"):
-        W_conv3 = tf.get_variable("W_conv3", shape=[5,5,50,60],initializer=tf.contrib.layers.xavier_initializer())
+        W_conv3 = tf.get_variable("W_conv3", shape=[5,5,40,40],initializer=tf.contrib.layers.xavier_initializer())
         # W_conv3 = weight_variable([5,5,5,5])
-        b_conv3 = bias_variable([60])
-        h_conv3 = tf.nn.relu(conv2d(h_pool2,W_conv3) + b_conv3)
+        b_conv3 = bias_variable([40])
+        h_conv3 = tf.nn.relu(conv2d(h_pool1,W_conv3) + b_conv3)
 
-    #pooling layer - downsamples by 2x
-    with tf.name_scope("pool3"):
-        h_pool3 = max_pool_2x2(h_conv3)
-
-    #final convolutional layer: maps 5 filters to 5 filters
+    #final convolutional layer: maps 10 filters to 10 filters
     with tf.name_scope("conv4"):
-        W_conv4 = tf.get_variable("W_conv4", shape=[5,5,60,60],initializer=tf.contrib.layers.xavier_initializer())
+        W_conv4 = tf.get_variable("W_conv4", shape=[5,5,40,80],initializer=tf.contrib.layers.xavier_initializer())
         # W_conv4 = weight_variable([5,5,5,5])
-        b_conv4 = bias_variable([60])
-        h_conv4 = tf.nn.relu(conv2d(h_pool3,W_conv4) + b_conv4)
+        b_conv4 = bias_variable([80])
+        h_conv4 = tf.nn.relu(conv2d(h_conv3,W_conv4) + b_conv4)
 
-    #fully connected layer: input image has been downsampled 3x, resulting in 6x6 image
-    #6x6x5 convolution output mapped to 40 features
+    #fully connected layer: input image has been downsampled, resulting in 24x24 image
+    #24x24x10 convolution output mapped to 40 features
     with tf.name_scope("fc1"):
-        W_fc1 = tf.get_variable("W_fc1", shape=[6*6*60,300],initializer=tf.contrib.layers.xavier_initializer())
+        W_fc1 = tf.get_variable("W_fc1", shape=[24*24*80,500],initializer=tf.contrib.layers.xavier_initializer())
         # W_fc1 = weight_variable([6*6*5,40])
-        b_fc1 = bias_variable([300])
+        b_fc1 = bias_variable([500])
 
-        h_conv4_flat = tf.reshape(h_conv4,[-1,6*6*60])
+        h_conv4_flat = tf.reshape(h_conv4,[-1,24*24*80])
         h_fc1 = tf.nn.relu(tf.matmul(h_conv4_flat,W_fc1) + b_fc1)
 
     #Dropout
@@ -149,7 +141,7 @@ def cnn(x):
 
     #output layer: map 40 features to the 7 emotion classes
     with tf.name_scope("fc2"):
-        W_fc2 = tf.get_variable("W_fc2", shape=[300,7],initializer=tf.contrib.layers.xavier_initializer())
+        W_fc2 = tf.get_variable("W_fc2", shape=[500,7],initializer=tf.contrib.layers.xavier_initializer())
         # W_fc2 = weight_variable([40,7])
         b_fc2 = bias_variable([7])
 
@@ -178,7 +170,7 @@ def bias_variable(shape):
   initial = tf.constant(0.01, shape=shape)
   return tf.Variable(initial)
 
-def train_cnn(train,test,validation,epochs=10000,batch_size=50):
+def train_cnn(train,test,validation,epochs=10000,batch_size=55):
     x = tf.placeholder(tf.float32,[None,48*48])
     y_ = tf.placeholder(tf.float32,[None,7])
 
