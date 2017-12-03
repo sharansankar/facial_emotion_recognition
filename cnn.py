@@ -2,7 +2,7 @@ import argparse
 import tensorflow as tf
 import scipy.misc
 import numpy as np
-
+from preprocessing import preprocessing
 def read_data(path):
     file = open(path,'r')
     file.readline()
@@ -121,25 +121,25 @@ def cnn(x):
         b_conv3 = bias_variable([60])
         h_conv3 = tf.nn.relu(conv2d(h_pool2,W_conv3) + b_conv3)
 
-    #pooling layer - downsamples by 2x
-    with tf.name_scope("pool3"):
-        h_pool3 = max_pool_2x2(h_conv3)
+    # #pooling layer - downsamples by 2x
+    # with tf.name_scope("pool3"):
+    #     h_pool3 = max_pool_2x2(h_conv3)
 
     #final convolutional layer: maps 5 filters to 5 filters
     with tf.name_scope("conv4"):
         W_conv4 = tf.get_variable("W_conv4", shape=[5,5,60,60],initializer=tf.contrib.layers.xavier_initializer())
         # W_conv4 = weight_variable([5,5,5,5])
         b_conv4 = bias_variable([60])
-        h_conv4 = tf.nn.relu(conv2d(h_pool3,W_conv4) + b_conv4)
+        h_conv4 = tf.nn.relu(conv2d(h_conv3,W_conv4) + b_conv4)
 
     #fully connected layer: input image has been downsampled 3x, resulting in 6x6 image
     #6x6x5 convolution output mapped to 40 features
     with tf.name_scope("fc1"):
-        W_fc1 = tf.get_variable("W_fc1", shape=[6*6*60,300],initializer=tf.contrib.layers.xavier_initializer())
+        W_fc1 = tf.get_variable("W_fc1", shape=[12*12*60,300],initializer=tf.contrib.layers.xavier_initializer())
         # W_fc1 = weight_variable([6*6*5,40])
         b_fc1 = bias_variable([300])
 
-        h_conv4_flat = tf.reshape(h_conv4,[-1,6*6*60])
+        h_conv4_flat = tf.reshape(h_conv4,[-1,12*12*60])
         h_fc1 = tf.nn.relu(tf.matmul(h_conv4_flat,W_fc1) + b_fc1)
 
     #Dropout
@@ -178,7 +178,7 @@ def bias_variable(shape):
   initial = tf.constant(0.01, shape=shape)
   return tf.Variable(initial)
 
-def train_cnn(train,test,validation,epochs=10000,batch_size=50):
+def train_cnn(train,test,validation,epochs=1500,batch_size=50):
     x = tf.placeholder(tf.float32,[None,48*48])
     y_ = tf.placeholder(tf.float32,[None,7])
 
@@ -192,35 +192,38 @@ def train_cnn(train,test,validation,epochs=10000,batch_size=50):
     # cross_entropy = tf.reduce_mean(cross_entropy)
 
     with tf.name_scope("adam_optimizer"):
-        train_step = tf.train.AdamOptimizer(1e-3).minimize(cross_entropy)
+        train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
 
     with tf.name_scope('accuracy'):
         correct_prediction = tf.equal(tf.argmax(y_conv,1),tf.argmax(y_,1))
         correct_prediction = tf.cast(correct_prediction,tf.float32)
     accuracy = tf.reduce_mean(correct_prediction)
 
+    # Add ops to save and restore all the variables.
+    saver = tf.train.Saver()
+
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         for i in range(epochs):
             batch_x, batch_y = get_batch(train,batch_size)
-            train_step.run(feed_dict={x:batch_x, y_:batch_y, keep_prob:0.4})
+            train_step.run(feed_dict={x:batch_x, y_:batch_y, keep_prob:0.5})
             if i % 100 == 0:
                 val_x, val_y = get_batch(validation,batch_size)
-                train_accuracy = accuracy.eval(feed_dict={x:batch_x, y_:batch_y, keep_prob:0.0})
-                val_accuracy = accuracy.eval(feed_dict={x:val_x, y_:val_y, keep_prob:0.0})
+                train_accuracy = accuracy.eval(feed_dict={x:batch_x, y_:batch_y, keep_prob:1.0})
+                val_accuracy = accuracy.eval(feed_dict={x:val_x, y_:val_y, keep_prob:1.0})
                 print('step %d, training accuracy %g, validation accuracy %g' % (i, train_accuracy, val_accuracy))
 
+        batch_x, batch_y = get_batch(test,627)
+        print('test accuracy %g' % accuracy.eval(feed_dict={x:batch_x, y_:batch_y, keep_prob: 1.0}))
 
-
+        save_path = saver.save(sess, "cnn_model2.ckpt")
+        print("model saved at: %s "% save_path )
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Training CNN for facial emotion recognition.')
     parser.add_argument("-p","--training_path",type=str )
     args = parser.parse_args()
 
-    train,valid,test = read_data(args.training_path)
-    # test_x, test_y = get_batch(test,5)
-    # print(test)
-    # print(test_y)
-    # print(test_x)
+    train,valid,test = preprocessing(path=args.training_path)
+
     train_cnn(train,test,valid)
