@@ -3,6 +3,18 @@ import tensorflow as tf
 import scipy.misc
 import numpy as np
 import pandas as pd
+import cv2
+
+def preprocess_prediction(img):
+    # img = img.reshape(48,48)
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img = cv2.resize(img, (48,48))
+    img = img.reshape(-1)
+    img = img - img.mean()
+    img = np.multiply(img,1/255.0)
+    img = img.astype(np.float32)
+    return img
+
 def preprocessing(path="/Users/sharansankar/OneDrive/Documents/data_science_resources/side_projects/tensorflow/facial_emotion_recognition/training_data/fer2013.csv"):
     data = pd.read_csv(path)
     try:
@@ -12,10 +24,10 @@ def preprocessing(path="/Users/sharansankar/OneDrive/Documents/data_science_reso
     pixels_values = pd.DataFrame(pixels_values, dtype=int)
     images = pixels_values.values
     images = images - images.mean(axis=1).reshape(-1,1)
-    images = np.multiply(images,100.0/255.0)
-    each_pixel_mean = images.mean(axis=0)
-    each_pixel_std = np.std(images, axis=0)
-    images = np.divide(np.subtract(images,each_pixel_mean), each_pixel_std)
+    images = np.multiply(images,1/255.0)
+    # each_pixel_mean = images.mean(axis=0)
+    # each_pixel_std = np.std(images, axis=0)
+    # images = np.divide(np.subtract(images,each_pixel_mean), each_pixel_std)
 
     training = []
     validation = []
