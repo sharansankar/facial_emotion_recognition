@@ -1,0 +1,2 @@
+model_checkpoint_path: "/Users/sharansankar/OneDrive/Documents/data_science_resources/side_projects/tensorflow/facial_emotion_recognition/cnn_model_up.ckpt"
+all_model_checkpoint_paths: "/Users/sharansankar/OneDrive/Documents/data_science_resources/side_projects/tensorflow/facial_emotion_recognition/cnn_model_up.ckpt"
